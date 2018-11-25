@@ -18,12 +18,12 @@ spec:
       role: prometheus-rulefiles
       prometheus: k8s
   resources:
-#    requests:
+    requests:
       # 2Gi is default, but won't schedule if you don't have a node with >2Gi
       # memory. Modify based on your target and time-series count for
       # production use. This value is mainly meant for demonstration/testing
       # purposes.
-#      memory: 512Mi
+      memory: 256Mi
   alerting:
     alertmanagers:
     - namespace: monitoring
