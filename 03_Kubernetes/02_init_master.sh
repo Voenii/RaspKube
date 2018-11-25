@@ -1,6 +1,6 @@
-***** Kubernetes - ONLY on MASTER *****
+#***** Kubernetes - ONLY on MASTER *****
 
-***** Optional *****
+#***** Optional *****
 kubeadm config images pull
 
 
@@ -28,11 +28,16 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 
 #Optional
+echo "adding these parameters"
+echo "- --node-monitor-period=2s"
+echo "- --node-monitor-grace-period=16s"
+echo "- --pod-eviction-timeout=10s"
+
 sudo nano /etc/kubernetes/manifests/kube-controller-manager.yaml
-    - --node-monitor-period=2s
-    - --node-monitor-grace-period=16s 
-    - --pod-eviction-timeout=10s
+#    - --node-monitor-period=2s
+#    - --node-monitor-grace-period=16s 
+#    - --pod-eviction-timeout=10s
 	
 
 # Taint the master node so application pods can run on it too
-kubectl taint nodes --all node-role.kubernetes.io/master-
+#kubectl taint nodes --all node-role.kubernetes.io/master-

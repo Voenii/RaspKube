@@ -1,9 +1,8 @@
-***** Docker *****
+#***** Docker *****
 
 curl -fsSL https://download.docker.com/linux/raspbian/gpg | sudo apt-key add -
 
 sudo apt-key fingerprint 0EBFCD88
-
 
 echo "deb [arch=armhf] https://download.docker.com/linux/raspbian \
      $(lsb_release -cs) stable" | \
@@ -11,7 +10,7 @@ echo "deb [arch=armhf] https://download.docker.com/linux/raspbian \
 
 sudo apt-get update
 
-apt-cache madison docker-ce
+#apt-cache madison docker-ce
 
 sudo apt-get install -y docker-ce=18.06.1~ce~3-0~raspbian
 
