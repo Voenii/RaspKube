@@ -9,5 +9,4 @@ sudo ssh-keygen #defaults ar fine
 #used with Flannel
 sudo sysctl net.bridge.bridge-nf-call-iptables=1
 
-sudo kubeadm join 10.0.1.1:6443 --token ot0ysd.5ts8zunpthyrbep4 --discovery-token-ca-cert-hash sha256:184f17b33007a0263981fe4d9e6b5fd1d8faea94bdcad57fe6463a4f3bcadd00
-
+sudo kubeadm join 10.0.1.1:6443 --token ot0ysd.5ts8zunpthyrbep4 --discovery-token-ca-cert-hash sha256:[YOURHASH]
