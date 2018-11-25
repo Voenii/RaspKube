@@ -1,0 +1,18 @@
+***** Open Faas *****
+
+git clone https://github.com/openfaas/faas-netes 
+
+cd faas-netes
+
+kubectl apply -f ./namespaces.yml
+kubectl apply -f ./yaml_armhf
+
+#Faas Client
+curl -SL https://cli.openfaas.com/ | sudo sh
+
+
+# Test in Browser: Proxy should run
+http://localhost:8001/api/v1/namespaces/openfaas/services/http:gateway:8080/proxy/
+
+
+

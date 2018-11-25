@@ -1,0 +1,29 @@
+
+***** USEFULL *****
+kubectl get nodes #-o wide
+
+kubectl get svc
+
+kubectl get pods -n kube-system
+watch kubectl get pods --all-namespaces
+
+kubectl get ev
+kubectl describe pods
+
+docker images
+
+kubectl describe pod --namespace kube-system [pod-name]
+
+
+kubectl describe pod --namespace kube-system kube-flannel-ds-arm
+
+kubectl logs -f --namespace=kube-system kube-flannel-ds-arm-2299v -c kube-flannel-ds-arm-2299v
+
+
+#BROWSER TESTING
+kubectl proxy
+
+ssh -L 8001:127.0.01:8001 pi@10.0.1.1
+
+#http://kubernetes_master_address/api/v1/namespaces/namespace_name/services/[https:]service_name[:port_name]/proxy
+

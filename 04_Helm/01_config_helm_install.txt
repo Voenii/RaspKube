@@ -1,0 +1,21 @@
+
+*** Install HELM ***
+export HELM_VERSION=v2.9.1
+export HELM_INSTALL_DIR=~/bin
+mkdir bin
+wget https://kubernetes-helm.storage.googleapis.com/helm-$HELM_VERSION-linux-arm.tar.gz
+tar xvzf helm-$HELM_VERSION-linux-arm.tar.gz
+mv linux-arm/helm $HELM_INSTALL_DIR/helm
+rm -rf linux-arm
+
+#Reboot required
+sudo reboot
+
+helm init --tiller-image=jessestuart/tiller:v2.9.1
+helm list
+
+kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
+
+helm repo add arm-stable https://peterhuene.github.io/arm-charts/stable
+#helm install arm-stable/mariadb
+

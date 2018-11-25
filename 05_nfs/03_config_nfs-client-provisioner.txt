@@ -1,0 +1,20 @@
+Inital: https://github.com/kubernetes-incubator/external-storage/tree/master/nfs-client
+
+
+# Set the subject of the RBAC objects to the current namespace where the provisioner is being deployed
+NS=$(kubectl config get-contexts|grep -e "^\*" |awk '{print $5}')
+NAMESPACE=${NS:-default}
+sed -i'' "s/namespace:.*/namespace: $NAMESPACE/g" rbac.yaml
+kubectl create -f rbac.yaml
+
+
+
+kubectl create -f deployment-arm.yaml
+
+
+kubectl create -f class.yaml
+
+
+
+kubectl patch storageclass managed-nfs-storage -p '{"metadata":{"annotations": {"storageclass.kubernetes.io/is-default-class": "true"}}}'
+

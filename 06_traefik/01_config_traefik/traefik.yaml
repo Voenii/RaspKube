@@ -1,0 +1,462 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: traefik
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: traefik
+  name: traefik-ingress-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: traefik-ingress-controller
+rules:    
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - extensions
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: traefik-ingress-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: traefik-ingress-controller
+subjects:
+- kind: ServiceAccount
+  namespace: traefik
+  name: traefik-ingress-controller
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-conf
+  namespace: traefik
+data:
+  traefik.toml: |
+    defaultEntryPoints = ["http","https"]
+    debug = false
+    logLevel = "INFO"
+    
+    # Do not verify backend certificates (use https backends)
+    InsecureSkipVerify = true
+
+    [entryPoints]
+      [entryPoints.http]
+      address = ":80"
+      compress = true
+      [entryPoints.https]
+      address = ":443"
+        [entryPoints.https.tls]
+
+    #Config to redirect http to https
+    #[entryPoints]
+    #  [entryPoints.http]
+    #  address = ":80"
+    #  compress = true
+    #    [entryPoints.http.redirect]
+    #    entryPoint = "https"
+    #  [entryPoints.https]
+    #  address = ":443"
+    #    [entryPoints.https.tls]
+
+    [web]
+      address = ":8080"
+
+    [kubernetes]
+
+    [metrics]
+      [metrics.prometheus]
+      buckets=[0.1,0.3,1.2,5.0]
+      entryPoint = "traefik"
+    [ping]
+    entryPoint = "http"
+---
+#
+kind: Deployment
+#kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: traefik-ingress-controller
+  namespace: traefik
+  labels:
+    k8s-app: traefik-ingress-lb
+spec:
+  template:
+    metadata:
+      labels:
+        k8s-app: traefik-ingress-lb
+        name: traefik-ingress-lb
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: traefik-ingress-lb
+        image: traefik     
+        volumeMounts:
+        - mountPath: /config
+          name: config
+        ports:
+        - name: http
+          containerPort: 80
+          hostPort: 80
+        - name: https
+          containerPort: 443          
+        - name: admin
+          containerPort: 8080
+        securityContext:
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE
+        args:
+        - --api
+        - --kubernetes
+        - --logLevel=INFO
+        - --configfile=/config/traefik.toml
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 80
+          initialDelaySeconds: 3
+          periodSeconds: 3
+          timeoutSeconds: 1
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: role
+                  operator: In
+                  values:
+                  - data
+              topologyKey: kubernetes.io/hostname
+      volumes:
+      - name: config
+        configMap:
+          name: traefik-conf
+---
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: traefik
+  name: traefik-ingress-service
+spec:
+  selector:
+    k8s-app: traefik-ingress-lb
+#
+  externalTrafficPolicy: Local    
+  ports:
+    - protocol: TCP
+      port: 80
+      name: web
+    - protocol: TCP
+      port: 443
+      name: https      
+    - protocol: TCP
+      port: 8080
+      name: admin
+#
+  type: LoadBalancer
+#
+  loadBalancerIP: 10.0.0.20      
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: traefik-ingress-lb
+  namespace: traefik
+spec:
+  rules:
+  - host: traefik.internal.voeni.ch
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: traefik-ingress-service
+          servicePort: admin
+---
+#EXTERNAL
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-conf-external
+  namespace: traefik
+data:
+  traefik.toml: |
+    defaultEntryPoints = ["http","https"]
+    debug = false
+    logLevel = "INFO"
+
+    #Config to redirect http to https
+    [entryPoints]
+      [entryPoints.http]
+        address = ":80"
+        compress = true
+        [entryPoints.http.redirect]
+        entryPoint = "https"
+      [entryPoints.https]
+        address = ":443"
+        compress = true
+        [entryPoints.https.tls]
+
+    [api]
+      [api.statistics]
+        recentErrors = 10
+
+    [kubernetes]
+      # Only create ingresses where the object has traffic-type: external label
+      labelselector = "traffic-type=external"
+
+    [metrics]
+      [metrics.prometheus]
+      buckets=[0.1,0.3,1.2,5.0]
+      entryPoint = "traefik"
+
+    [ping]
+      entryPoint = "http"
+    
+    [accessLog]
+
+    [consul]
+      endpoint = "consul-traefik-consul.traefik.svc:8500"
+      watch = true
+      prefix = "traefik-external"
+      username = "foo"
+      password = "bar"
+
+    [acme]
+      email = "voeni@voeni.ch"
+      storage = "traefik-external-certificates/acme/account"
+      acmeLogging = true
+      entryPoint = "https"
+      OnHostRule = true
+      #caServer = "https://acme-staging-v02.api.letsencrypt.org/directory"
+      [acme.httpChallenge]
+        entryPoint="http"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: traefik-ingress-controller-external
+  namespace: traefik
+  labels:
+    k8s-app: traefik-ingress-lb-external
+spec:
+  serviceName: traefik-ingress-lb-external
+  replicas: 2
+  selector:
+    matchLabels:
+      k8s-app: traefik-ingress-lb-external
+  template:
+    metadata:
+      labels:
+        k8s-app: traefik-ingress-lb-external
+        name: traefik-ingress-lb-external
+    spec:
+      serviceAccountName: traefik-ingress-controller
+      terminationGracePeriodSeconds: 60
+      # Remove the initContainer in case of a *big operation* to avoid inconsistencies when
+      # starting multiple pods in parallel. Might be a case a pod starts with partial config
+      # because another pod is overwriting the config in KV.
+      #initContainers:
+      #- name: storeconfig
+      #  image: traefik:v1.6
+      #  imagePullPolicy: IfNotPresent
+      #  args:
+      #  - storeconfig
+      #  - -c
+      #  - /config/traefik.toml
+      #  volumeMounts:
+      #  - name: config
+      #    mountPath: /etc/traefik
+      #    readOnly: true
+      containers:
+      - image: traefik
+        name: traefik-ingress-lb
+        ports:
+         - name: http
+           containerPort: 80
+         - name: https
+           containerPort: 443
+         - name: admin
+           containerPort: 8080
+        args:
+        - --api
+        - --configfile=/config/traefik.toml
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 180
+          periodSeconds: 3
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /config
+          name: config
+      volumes:
+      - name: config
+        configMap:
+          name: traefik-conf-external
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: role
+                  operator: In
+                  values:
+                  - data
+              topologyKey: kubernetes.io/hostname
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: traefik-ingress-service-external
+  namespace: traefik
+  labels:
+    k8s-app: traefik-ingress-lb
+spec:
+  selector:
+    k8s-app: traefik-ingress-lb-external
+#
+  externalTrafficPolicy: Local
+  ports:
+    - protocol: TCP
+      port: 80
+      name: web
+    - protocol: TCP
+      port: 443
+      name: https
+    - protocol: TCP
+      port: 8080
+      name: admin
+#
+  type: LoadBalancer
+#
+  loadBalancerIP: 10.0.0.21
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: traefik-ingress-lb-external
+  namespace: traefik
+  labels:
+    traffic-type: internal
+spec:
+  rules:
+  - host: traefik-ext.internal.voeni.ch
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: traefik-ingress-service-external
+          servicePort: admin
+
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: consul-ui
+  namespace: traefik
+spec:
+  rules:
+  - host: consul.internal.voeni.ch
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: consul-traefik-consul-ui
+          servicePort: http
+---
+#TRAEFIK UI
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik-web-ui
+  namespace: traefik
+spec:
+  selector:
+    k8s-app: traefik-ingress-lb
+  ports:
+  - port: 80
+    targetPort: 8080
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: traefik-web-ui
+  namespace: traefik
+spec:
+  rules:
+  - host: traefik-ui.internal.voeni.ch
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: traefik-web-ui
+          servicePort: 80
+
+
+---
+#Dashboard
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-dashboard
+  namespace: traefik
+spec:
+  selector:
+    k8s-app: traefik-ingress-lb
+  ports:
+  - port: 443
+    targetPort: 433
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: k8s-dashboard
+  namespace: traefik
+spec:
+  rules:
+  - host: k8s-dashboard.internal.voeni.ch
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kubernetes-dashboard
+          servicePort: 443
+

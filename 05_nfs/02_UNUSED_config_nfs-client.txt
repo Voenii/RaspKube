@@ -1,0 +1,18 @@
+***** NFS Client => UNUSED*****
+sudo apt install nfs-common -y
+
+
+sudo chown pi:pi /mnt
+
+sudo nano /etc/idmapd.conf
+[Mapping]
+Nobody-User = pi
+Nobody-Group = pi
+
+sudo mount 192.168.5.111:/opt/nfs /mnt
+
+sudo nano /etc/fstab
+
+192.168.5.111:/opt/nfs /mnt nfs rw 0 0
+
+#showmount -e 192.168.5.115

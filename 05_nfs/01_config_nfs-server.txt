@@ -1,0 +1,52 @@
+***** NFS Server *****
+#https://sysadmins.co.za/setup-a-nfs-server-and-client-on-the-raspberry-pi/
+
+sudo mkdir -p /opt/nfs
+sudo chown pi:pi /opt/nfs
+sudo chmod 755 /opt/nfs
+
+sudo lsblk
+sudo mount /dev/mmcblk0p6 /opt/nfs
+sudo chown -R pi:pi /opt/nfs/existing_dirs
+sudo find /opt/nfs/existing_dirs/ -type d -exec chmod 755 {} \;
+sudo find /opt/nfs/existing_dirs/ -type f -exec chmod 644 {} \;
+
+
+sudo blkid
+
+sudo nano /etc/fstab
+/dev/mmcblk0p6 /opt/nfs ext4 defaults,noatime 0 0
+
+
+sudo nano /boot/cmdline.txt
+
+rootdelay=10 
+
+
+sudo apt install nfs-kernel-server nfs-common rpcbind -y
+
+id pi
+
+sudo nano /etc/exports
+/opt/nfs 192.168.5.0/24(rw,all_squash,insecure,async,no_subtree_check,anonuid=1000,anongid=1000)
+
+
+sudo exportfs -ra
+showmount -e 192.168.5.111
+sudo systemctl enable rpcbind
+sudo systemctl enable nfs-kernel-server
+sudo systemctl enable nfs-common
+sudo systemctl start rpcbind
+sudo systemctl start nfs-kernel-server
+sudo systemctl start nfs-common
+
+#if there are problems, try....
+sudo systemctl unmask nfs-common 
+sudo rm /lib/systemd/system/nfs-common.service
+
+
+
+#Test on Windows: Access to NFS
+#enable NFS Client
+
+mount -o anon \\192.168.5.111\opt\nfs o:

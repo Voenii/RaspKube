@@ -1,0 +1,30 @@
+#MY SERVICE
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: traefik
+  name: my-svc-1
+spec:
+  selector:
+    k8s-app: traefik-ingress-lb
+  ports:
+  - port: 80 
+    targetPort: 8080
+  externalIPs:
+  - 10.0.1.1
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: traefik
+  name: ingress-ms-1
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: my-address-url
+    http:
+      paths:
+      - backend:
+          serviceName: my-svc-1
+          servicePort: 80

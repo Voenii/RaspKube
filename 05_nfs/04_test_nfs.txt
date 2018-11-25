@@ -1,0 +1,17 @@
+#https://kubernetes.io/docs/tasks/configure-pod-container/configure-persistent-volume-storage/
+
+
+kubectl create -f pv-claim.yaml
+
+#COPY index.html to Claim Storage
+
+kubectl create -f pv-pod.yaml
+
+kubectl exec -it task-pv-pod -- /bin/bash
+apt-get update
+apt-get install curl
+curl localhost
+
+#DELETE 
+kubectl delete -f pv-claim.yaml -f pv-pod.yaml
+

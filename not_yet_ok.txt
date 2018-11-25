@@ -1,0 +1,22 @@
+
+***** ansible *****
+
+ansible-playbook cluster.yml --ask-pass
+
+***** kube-ops-view ******
+helm install --name=my-release stable/kube-ops-view
+
+
+http://localhost:8001/api/v1/namespaces/default/services/http:my-release-kube-ops-view:/proxy/
+
+
+
+***** ELK *****
+
+helm install --name elk stable/elastic-stack
+
+
+***** gcp-live-k8s-visualizer *****
+kubectl proxy --www=gcp-live-k8s-visualizer
+
+***************

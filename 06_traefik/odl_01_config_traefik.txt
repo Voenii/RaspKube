@@ -1,0 +1,41 @@
+****** Traefik *******
+
+#Source https://github.com/containous/traefik/blob/master/docs/user-guide/kubernetes.md
+
+
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/master/examples/k8s/traefik-rbac.yaml
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/master/examples/k8s/traefik-deployment.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/containous/traefik/master/examples/k8s/ui.yaml
+
+#Test in Browser - Proxy should run
+http://localhost:8001/api/v1/namespaces/kube-system/services/http:traefik-web-ui:80/proxy/
+
+==> ToDo: Config Ingress
+
+#Source: https://github.com/dusansusic/kubernetes-traefik
+
+
+#Create namespace
+kubectl create namespace traefik
+
+#Create TLS certificate:
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout ./tls.key -out ./tls.crt -subj "/CN=*.k8s.local"
+
+#Create a TLS secret:
+kubectl create secret tls traefik-ui-tls-cert --key ./tls.key --cert ./tls.crt --namespace traefik
+
+#Apply deployment file:
+kubectl apply -f https://raw.githubusercontent.com/dusansusic/kubernetes-traefik/master/deployment.yaml
+
+
+#Test in Browser - Proxy should run
+http://localhost:8001/api/v1/namespaces/traefik/services/http:traefik-dashboard:8080/proxy/
+
+
+
+$htpasswd -nb  user1 SecretPassword42
+user1:$apr1$F/4euI1M$v7i/LYuouxfuPyNG.7g.g1
+To use it as a Kubernetes secret we have to encode it in base64.
+
+$ echo -n  "user1:$apr1$F/4euI1M$v7i/LYuouxfuPyNG.7g.g1"  |base64

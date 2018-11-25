@@ -1,0 +1,13 @@
+***** Markdownrender *****
+
+
+kubectl create -f function.yml
+
+kubectl describe pod --namespace default markdownrender
+
+kubectl logs -f --namespace=default markdownrender-7d8d6f74d6-9n49t -c markdownrender
+
+curl -4 http://127.0.0.1:31118 -d "# test"
+
+kubectl delete -f function.yml
+
