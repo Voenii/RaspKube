@@ -6,7 +6,7 @@ sudo chown pi:pi /opt/nfs
 sudo chmod 755 /opt/nfs
 
 sudo lsblk
-sudo mount /dev/mmcblk0p6 /opt/nfs
+sudo mount /dev/mmcblk0p3 /opt/nfs
 sudo chown -R pi:pi /opt/nfs/existing_dirs
 sudo find /opt/nfs/existing_dirs/ -type d -exec chmod 755 {} \;
 sudo find /opt/nfs/existing_dirs/ -type f -exec chmod 644 {} \;
